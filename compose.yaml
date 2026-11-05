@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: expirywatch
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
@@ -11,13 +12,35 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U expirywatch -d expirywatch"]
+      # -h forces TCP. During first boot a temporary init server answers on the Unix socket only,
+      # so a socket check reports healthy too early and the API gets "connection refused".
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U expirywatch -d expirywatch"]
       interval: 5s
       timeout: 3s
       retries: 10
       # First boot runs initdb, which can take minutes on a slow Docker disk.
       start_period: 5m
       start_interval: 2s
+
+  api:
+    build: .
+    # depends_on only orders "up". On "compose restart" both restart at once, and the API exits
+    # if its migrations find the database still down, so it must retry by itself.
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # "db" is the service name above: Compose networking resolves it to that container.
+      DATABASE_URL: postgresql+psycopg://expirywatch:${POSTGRES_PASSWORD}@db:5432/expirywatch
+      APP_ENV: ${APP_ENV:-development}
+      APP_API_KEY: ${APP_API_KEY:-}
+      EXTERNAL_API_BASE_URL: ${EXTERNAL_API_BASE_URL:-https://world.openfoodfacts.org}
+      EXPIRY_WARNING_DAYS: ${EXPIRY_WARNING_DAYS:-30}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
+    ports:
+      - "8000:8000"
 
 volumes:
   postgres_data:

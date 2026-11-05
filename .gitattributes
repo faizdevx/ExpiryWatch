@@ -1,0 +1,2 @@
+# LF everywhere: a CRLF line in a shell command or .env value breaks inside Linux containers.
+* text=auto eol=lf
