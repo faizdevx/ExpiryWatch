@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from app.config import get_settings
 from app.exceptions.handlers import register_exception_handlers
-from app.routes import batches, health, products
+from app.routes import alerts, batches, dashboard, health, products
 
 settings = get_settings()
 logging.basicConfig(
@@ -28,3 +28,5 @@ register_exception_handlers(app)
 app.include_router(health.router)
 app.include_router(products.router, prefix="/api/v1")
 app.include_router(batches.router, prefix="/api/v1")
+app.include_router(alerts.router, prefix="/api/v1")
+app.include_router(dashboard.router, prefix="/api/v1")

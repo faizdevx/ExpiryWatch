@@ -4,7 +4,7 @@ from typing import Literal
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.exceptions.handlers import NotFoundError
 from app.models import InventoryBatch
@@ -13,6 +13,7 @@ from app.schemas.batch import BatchCreate, BatchUpdate
 logger = logging.getLogger(__name__)
 
 BatchSort = Literal["expiry_asc", "expiry_desc"]
+ExpiryRange = tuple[date | None, date | None]
 
 
 def create_batch(db: Session, data: BatchCreate, today: date) -> InventoryBatch:
@@ -41,15 +42,15 @@ def get_batch(db: Session, batch_id: int) -> InventoryBatch:
 def list_batches(
     db: Session,
     *,
-    product_id: int | None,
-    location: str | None,
-    expiry_from: date | None,
-    expiry_to: date | None,
-    include_depleted: bool,
-    sort: BatchSort,
     limit: int,
     offset: int,
+    product_id: int | None = None,
+    location: str | None = None,
+    expiry_ranges: tuple[ExpiryRange, ...] = (),
+    include_depleted: bool = False,
+    sort: BatchSort = "expiry_asc",
 ) -> tuple[list[InventoryBatch], int]:
+    """Filter batches. A batch must fall inside every range in expiry_ranges."""
     conditions = []
     if not include_depleted:
         conditions.append(InventoryBatch.quantity > 0)
@@ -57,10 +58,11 @@ def list_batches(
         conditions.append(InventoryBatch.product_id == product_id)
     if location:
         conditions.append(func.lower(InventoryBatch.location) == location.lower())
-    if expiry_from:
-        conditions.append(InventoryBatch.expiry_date >= expiry_from)
-    if expiry_to:
-        conditions.append(InventoryBatch.expiry_date <= expiry_to)
+    for earliest, latest in expiry_ranges:
+        if earliest:
+            conditions.append(InventoryBatch.expiry_date >= earliest)
+        if latest:
+            conditions.append(InventoryBatch.expiry_date <= latest)
 
     expiry_order = (
         InventoryBatch.expiry_date.asc()
@@ -68,7 +70,12 @@ def list_batches(
         else InventoryBatch.expiry_date.desc()
     )
     # id breaks ties: same-day batches keep one order, so pages never repeat or skip a row.
-    query = select(InventoryBatch).where(*conditions).order_by(expiry_order, InventoryBatch.id)
+    query = (
+        select(InventoryBatch)
+        .options(joinedload(InventoryBatch.product))  # Avoids one extra query per batch.
+        .where(*conditions)
+        .order_by(expiry_order, InventoryBatch.id)
+    )
     total = db.scalar(select(func.count()).select_from(InventoryBatch).where(*conditions))
     return list(db.scalars(query.limit(limit).offset(offset))), total
 

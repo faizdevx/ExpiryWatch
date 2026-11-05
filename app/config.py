@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     app_env: Literal["development", "test", "production"] = "development"
     app_api_key: SecretStr | None = None  # SecretStr keeps the key out of logs and reprs.
     external_api_base_url: str = "https://world.openfoodfacts.org"
-    expiry_warning_days: int = Field(default=30, ge=0)
+    expiry_warning_days: int = Field(default=30, ge=0, le=3650)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     app_timezone: str = "UTC"
 
