@@ -1,11 +1,20 @@
-from fastapi import APIRouter, status
+from typing import Annotated
+
+from fastapi import APIRouter, Path, status
 
 from app.auth import WriteAccess
 from app.database import DbSession
 from app.models import Product
 from app.schemas.common import Limit, Offset, Page
-from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
-from app.services import product_service
+from app.schemas.product import (
+    BARCODE_PATTERN,
+    BarcodeLookup,
+    ProductCreate,
+    ProductRead,
+    ProductUpdate,
+)
+from app.services import barcode_service, product_service
+from app.services.barcode_service import BarcodeClient
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -31,6 +40,14 @@ def list_products(
         db, q=q, category=category, brand=brand, barcode=barcode, limit=limit, offset=offset
     )
     return {"items": items, "total": total, "limit": limit, "offset": offset}
+
+
+# Requires the key though it is a read: anyone could otherwise burn the 15 req/min provider quota.
+@router.get("/lookup/{barcode}", dependencies=[WriteAccess])
+async def lookup_barcode(
+    barcode: Annotated[str, Path(pattern=BARCODE_PATTERN)], client: BarcodeClient
+) -> BarcodeLookup:
+    return await barcode_service.lookup_barcode(client, barcode)
 
 
 @router.get("/{product_id}", response_model=ProductRead)

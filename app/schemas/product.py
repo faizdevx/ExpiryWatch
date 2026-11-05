@@ -12,9 +12,11 @@ def blank_to_none(value: object) -> object:
 
 Name = Annotated[str, Field(min_length=1, max_length=255)]
 # EAN-8 to GTIN-14. Blank means no barcode, so it cannot trip the UNIQUE constraint.
+# [0-9] because \d in the validator also matches non-ASCII digits such as Arabic-Indic.
+BARCODE_PATTERN = r"^[0-9]{8,14}$"
 Barcode = Annotated[
     # pattern goes on str alone: on the union with a BeforeValidator, None raises TypeError.
-    Annotated[str, Field(pattern=r"^\d{8,14}$")] | None,
+    Annotated[str, Field(pattern=BARCODE_PATTERN)] | None,
     BeforeValidator(blank_to_none),
 ]
 OptionalLabel = Annotated[str | None, Field(max_length=255)]
@@ -49,3 +51,12 @@ class ProductRead(BaseModel):
     description: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class BarcodeLookup(BaseModel):
+    """Provider data, normalized. Any field but barcode may be missing for a real product."""
+
+    barcode: str
+    name: str | None
+    brand: str | None
+    category: str | None

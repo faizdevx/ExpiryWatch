@@ -69,8 +69,9 @@ def client(db):
             db.rollback()
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app, headers={"X-API-Key": TEST_API_KEY}) as test_client:
-        yield test_client
+    # No "with": skipping lifespan avoids building a real HTTP client (and SSL context) per test,
+    # and means a test that forgets to mock the provider fails instead of using the network.
+    yield TestClient(app, headers={"X-API-Key": TEST_API_KEY})
     app.dependency_overrides.clear()
 
 

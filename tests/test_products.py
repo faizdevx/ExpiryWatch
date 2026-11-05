@@ -39,7 +39,7 @@ def test_create_rejects_unknown_field(client):
     assert_error(response, 422, "validation_error")
 
 
-@pytest.mark.parametrize("barcode", ["1234567", "123456789012345", "12345abc"])
+@pytest.mark.parametrize("barcode", ["1234567", "123456789012345", "12345abc", "١٢٣٤٥٦٧٨"])
 def test_create_rejects_malformed_barcode(client, barcode):
     response = client.post(PRODUCTS, json={"name": "Milk", "barcode": barcode})
     assert_error(response, 422, "validation_error")
