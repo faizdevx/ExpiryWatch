@@ -1,0 +1,23 @@
+[project]
+name = "expirywatch"
+version = "0.1.0"
+description = "Batch-level expiry tracking REST API. Track smarter. Waste less."
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "S"]
+
+[tool.ruff.lint.isort]
+# The local alembic/ folder would otherwise make ruff treat the package as first-party.
+known-third-party = ["alembic"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
