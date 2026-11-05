@@ -5,7 +5,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import get_settings
-from app.routes import health
+from app.exceptions.handlers import register_exception_handlers
+from app.routes import batches, health, products
 
 settings = get_settings()
 logging.basicConfig(
@@ -23,4 +24,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="ExpiryWatch", version="0.1.0", lifespan=lifespan)
+register_exception_handlers(app)
 app.include_router(health.router)
+app.include_router(products.router, prefix="/api/v1")
+app.include_router(batches.router, prefix="/api/v1")
