@@ -1,0 +1,35 @@
+# Render Blueprint: Dashboard > New > Blueprint. Region and database names cannot change later.
+services:
+  - type: web
+    name: expirywatch
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: expirywatch-db
+          property: connectionString
+      - key: APP_ENV
+        value: production
+      # Render generates a random key once. Read it in the service's Environment tab.
+      - key: APP_API_KEY
+        generateValue: true
+      - key: EXTERNAL_API_BASE_URL
+        value: https://world.openfoodfacts.org
+      - key: EXPIRY_WARNING_DAYS
+        value: "30"
+      - key: LOG_LEVEL
+        value: INFO
+      # IANA name deciding what "today" means for expiry, e.g. Asia/Kolkata.
+      - key: APP_TIMEZONE
+        value: UTC
+
+databases:
+  - name: expirywatch-db
+    plan: free
+    region: singapore # Same region as the web service, or the internal URL will not connect.
+    databaseName: expirywatch
+    user: expirywatch
+    postgresMajorVersion: "17"
