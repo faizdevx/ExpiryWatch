@@ -29,6 +29,13 @@ def create_batch(db: Session, data: BatchCreate, today: date) -> InventoryBatch:
             raise NotFoundError("product", data.product_id) from error
         raise
     db.refresh(batch)
+    logger.info(
+        "Created batch id=%s product_id=%s quantity=%s expiry_date=%s",
+        batch.id,
+        batch.product_id,
+        batch.quantity,
+        batch.expiry_date,
+    )
     return batch
 
 
@@ -86,6 +93,7 @@ def update_batch(db: Session, batch_id: int, data: BatchUpdate) -> InventoryBatc
         setattr(batch, field, value)
     db.commit()
     db.refresh(batch)
+    logger.info("Updated batch id=%s quantity=%s", batch.id, batch.quantity)
     return batch
 
 

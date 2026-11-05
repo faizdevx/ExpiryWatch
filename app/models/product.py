@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 class Product(TimestampMixin, Base):
     __tablename__ = "products"
+    # A row already deleted by a concurrent request is the end state wanted, not an error.
+    __mapper_args__ = {"confirm_deleted_rows": False}
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), index=True)

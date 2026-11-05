@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 class InventoryBatch(TimestampMixin, Base):
     __tablename__ = "inventory_batches"
     __table_args__ = (CheckConstraint("quantity >= 0", name="quantity_non_negative"),)
+    # A row already deleted by a concurrent request is the end state wanted, not an error.
+    __mapper_args__ = {"confirm_deleted_rows": False}
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     product_id: Mapped[int] = mapped_column(

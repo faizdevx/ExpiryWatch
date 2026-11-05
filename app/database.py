@@ -11,6 +11,7 @@ from app.config import get_settings
 engine = create_engine(
     get_settings().database_url,
     pool_pre_ping=True,
+    hide_parameters=True,  # Row values stay out of exception text, and so out of the logs.
     connect_args={"connect_timeout": 5},
 )
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)

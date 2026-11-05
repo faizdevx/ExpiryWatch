@@ -3,7 +3,9 @@ import logging
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import DataError
+from sqlalchemy.exc import DataError, OperationalError
+from sqlalchemy.exc import TimeoutError as PoolTimeoutError
+from sqlalchemy.orm.exc import StaleDataError
 from starlette.exceptions import HTTPException
 
 logger = logging.getLogger(__name__)
@@ -77,6 +79,26 @@ def handle_data_error(_: Request, error: DataError) -> JSONResponse:
     )
 
 
+def handle_database_unavailable(request: Request, error: Exception) -> JSONResponse:
+    # A 503 tells clients to retry, unlike the 500 this would otherwise become.
+    logger.error("Database unavailable on %s %s: %r", request.method, request.url.path, error)
+    return error_response(
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        "database_unavailable",
+        "The database is temporarily unavailable",
+    )
+
+
+def handle_stale_data(request: Request, error: StaleDataError) -> JSONResponse:
+    # Another request deleted the row between this request reading it and writing it.
+    logger.warning("Concurrent change on %s %s: %s", request.method, request.url.path, error)
+    return error_response(
+        status.HTTP_409_CONFLICT,
+        "concurrent_modification",
+        "The record was changed or deleted by another request",
+    )
+
+
 def handle_unexpected_error(request: Request, error: Exception) -> JSONResponse:
     logger.error("Unexpected error on %s %s", request.method, request.url.path, exc_info=error)
     return error_response(
@@ -89,4 +111,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(RequestValidationError, handle_validation_error)
     app.add_exception_handler(HTTPException, handle_http_exception)
     app.add_exception_handler(DataError, handle_data_error)
+    app.add_exception_handler(OperationalError, handle_database_unavailable)
+    app.add_exception_handler(PoolTimeoutError, handle_database_unavailable)
+    app.add_exception_handler(StaleDataError, handle_stale_data)
     app.add_exception_handler(Exception, handle_unexpected_error)

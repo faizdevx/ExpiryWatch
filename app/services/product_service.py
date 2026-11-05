@@ -29,6 +29,7 @@ def create_product(db: Session, data: ProductCreate) -> Product:
     db.add(product)
     _commit_product(db, data.barcode)
     db.refresh(product)
+    logger.info("Created product id=%s", product.id)
     return product
 
 
