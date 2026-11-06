@@ -473,7 +473,18 @@ Every error uses one format:
 
 ## Deployment
 
-**Public URL:** not deployed yet.
+**Public URL:** <https://expirywatch-duau.onrender.com>
+
+| Page | URL |
+|---|---|
+| Swagger docs | <https://expirywatch-duau.onrender.com/docs> |
+| ReDoc | <https://expirywatch-duau.onrender.com/redoc> |
+| Health | <https://expirywatch-duau.onrender.com/health> |
+
+It runs with `APP_ENV=production`, so protected routes need the deployment's API key. The free
+service sleeps when idle, so the first request after a quiet period can take about a minute.
+
+To deploy your own copy:
 
 The repository includes a [Render Blueprint](render.yaml), which creates the web service and the
 database. On Render:
